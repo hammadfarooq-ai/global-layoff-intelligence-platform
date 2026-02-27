@@ -1,5 +1,5 @@
 """
-Overview API: aggregate KPIs (total layoffs, top country/industry, total companies).
+Overview API: aggregate KPIs (total layoffs, top country/industry, total companies) and filter options.
 """
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -9,6 +9,28 @@ from models import LayoffRecord
 from schemas import OverviewResponse
 
 router = APIRouter(prefix="/api/overview", tags=["overview"])
+
+
+@router.get("/filters")
+def get_filters(db: Session = Depends(get_db)):
+    """Return distinct countries, industries, and years for filter dropdowns."""
+    countries = [
+        r[0] for r in
+        db.query(LayoffRecord.country).filter(
+            LayoffRecord.country.isnot(None), LayoffRecord.country != ""
+        ).distinct().order_by(LayoffRecord.country).all()
+    ]
+    industries = [
+        r[0] for r in
+        db.query(LayoffRecord.industry).filter(
+            LayoffRecord.industry.isnot(None), LayoffRecord.industry != ""
+        ).distinct().order_by(LayoffRecord.industry).all()
+    ]
+    years = [
+        r[0] for r in
+        db.query(LayoffRecord.year).filter(LayoffRecord.year.isnot(None)).distinct().order_by(LayoffRecord.year.desc()).all()
+    ]
+    return {"countries": countries, "industries": industries, "years": years}
 
 
 @router.get("", response_model=OverviewResponse)
